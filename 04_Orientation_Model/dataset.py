@@ -29,7 +29,7 @@ def filterAndLimit(target, limit, datax , datay) :
     if limit==-1 :
         limit = len(datax)
     while(count<limit and i<limit) :
-        if target==datay[i] :
+        if datay[i] in target:
             x.append(datax[i])
             y.append(datay[i])
             count += 1
@@ -109,7 +109,7 @@ class MNISTDataset(Dataset) :
         images of varied orientation. Also uses a four element list counts[]
         to control the count of images of given orientation
     '''
-    def __init__(self, target = 0, counts = None) :
+    def __init__(self, target = [], counts = None) :
         (x_train, y_train) , _ = tf.keras.datasets.mnist.load_data()
         x, y, counts = getDataset(x_train, y_train, target)
         super(MNISTDataset, self).__init__(x, y, counts)
