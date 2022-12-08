@@ -7,6 +7,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # AUxillary methods
+
+import os
+import importlib
+import time
+
+dirname = os.path.dirname('D:/fincrime-federated/')
+os.chdir(dirname)
+print(os.getcwd())
+
+import submission_src.fincrime.solution_centralized as funcs
+importlib.reload(funcs) 
+
+start_time = time.time()
+
+model_dir = 'D:/fincrime-federated/model/fincrime'
+preds_format_path = 'D:/fincrime-federated/prediction/fincrime/prediction_format'
+preds_dest_path = 'D:/fincrime-federated/prediction/fincrime/prediction'
+
+
+## train on data
+datapathjsonString = 'data/fincrime/centralized/train/trail_data_2.json'
+swift_data_path = funcs.json_to_dict(datapathjsonString)['swift_data_path']
+bank_data_path = funcs.json_to_dict(datapathjsonString)['bank_data_path']
+
+# predict on test data
+
 #Define Flower client
 class FlowerClient(fl.client.NumPyClient):
     def get_parameters(self,config):
