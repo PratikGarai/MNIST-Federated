@@ -7,85 +7,36 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # AUxillary methods
-# def getDist(y):
-#     ax = sns.countplot(y)
-#     ax.set(title="Count of data classes")
-#     plt.show()
 
-# def getData(dist, x, y):
-#     dx = []
-#     dy = []
-#     counts = [0 for i in range(10)]
-#     for i in range(len(x)):
-#         if counts[y[i]]<dist[y[i]]:
-#             dx.append(x[i])
-#             dy.append(y[i])
-#             counts[y[i]] += 1
-        
-#     return np.array(dx), np.array(dy)
+import os
+import importlib
+import time
 
-# # Load and compile Keras model
-# model = keras.Sequential([
-#     keras.layers.Flatten(input_shape=(28,28)),
-#     keras.layers.Dense(128, activation='relu'),
-#     keras.layers.Dense(256, activation='relu'),
-#     keras.layers.Dense(10, activation='softmax')
-# ])
-# model.compile("adam", "sparse_categorical_crossentropy", metrics=["accuracy"])
+dirname = os.path.dirname('D:/fincrime-federated/')
+os.chdir(dirname)
+print(os.getcwd())
 
-# # Load dataset
-# (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-# x_train, x_test = x_train[..., np.newaxis]/255.0, x_test[..., np.newaxis]/255.0
-# dist = [4000, 4000, 4000, 3000, 10, 10, 10, 10, 4000, 10]
-# x_train, y_train = getData(dist, x_train, y_train)
-# getDist(y_train)
+import submission_src.fincrime.solution_centralized as funcs
+importlib.reload(funcs) 
+
+start_time = time.time()
+
+model_dir = 'D:/fincrime-federated/model/fincrime'
+preds_format_path = 'D:/fincrime-federated/prediction/fincrime/prediction_format'
+preds_dest_path = 'D:/fincrime-federated/prediction/fincrime/prediction'
 
 
-def train(net, trainloader, epochs: int):
-    """Train the network on the training set."""
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(net.parameters())
-    net.train()
-    for epoch in range(epochs):
-        correct, total, epoch_loss = 0, 0, 0.0
-        for images, labels in trainloader:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
-            optimizer.zero_grad()
-            outputs = net(images)
-            loss = criterion(net(images), labels)
-            loss.backward()
-            optimizer.step()
-            # Metrics
-            epoch_loss += loss
-            total += labels.size(0)
-            correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
-        epoch_loss /= len(trainloader.dataset)
-        epoch_acc = correct / total
-        print(f"Epoch {epoch+1}: train loss {epoch_loss}, accuracy {epoch_acc}")
+## train on data
+datapathjsonString = 'data/fincrime/centralized/train/trail_data_1.json'
+swift_data_path = funcs.json_to_dict(datapathjsonString)['swift_data_path']
+bank_data_path = funcs.json_to_dict(datapathjsonString)['bank_data_path']
 
+# predict on test data
 
-def test(net, testloader):
-    """Evaluate the network on the entire test set."""
-    criterion = torch.nn.CrossEntropyLoss()
-    correct, total, loss = 0, 0, 0.0
-    net.eval()
-    with torch.no_grad():
-        for images, labels in testloader:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
-            outputs = net(images)
-            loss += criterion(outputs, labels).item()
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-    loss /= len(testloader.dataset)
-    accuracy = correct / total
-    return loss, accuracy
-
-
-# Define Flower client
-# class FlowerClient(fl.client.NumPyClient):
-#     def get_parameters(self,config):
-#         return model.get_weights()
+#Define Flower client
+class FlowerClient(fl.client.NumPyClient):
+    def get_parameters(self,config):
+        return model.get_weights()
 
 #     def fit(self, parameters, config):
 #         model.set_weights(parameters)
@@ -93,35 +44,32 @@ def test(net, testloader):
 #         hist = r.history
 #         print("Fit history : " ,hist)
 #         return model.get_weights(), len(x_train), {}
+    def fit(self):       #, parameters, config):
+        result = funcs.fit(swift_data_path = swift_data_path,
+            bank_data_path = bank_data_path,
+            model_dir = model_dir,
+            preds_format_path = preds_format_path,
+            preds_dest_path = preds_dest_path,
+            m = 'xgboost')
+        return result
 
 #     def evaluate(self, parameters, config):
+    def evaluate(self):     #, parameters, config):
 #         model.set_weights(parameters)
 #         loss, accuracy = model.evaluate(x_test, y_test, verbose=0)
 #         print("Eval accuracy : ", accuracy)
-#         return loss, len(x_test), {"accuracy": accuracy}
-
-class FlowerClient(fl.client.NumPyClient):
-    def __init__(self, net, trainloader, valloader):
-        self.net = net
-        self.trainloader = trainloader
-        self.valloader = valloader
-
-    def get_parameters(self, config):
-        return get_parameters(self.net)
-
-    def fit(self, parameters, config):
-        set_parameters(self.net, parameters)
-        train(self.net, self.trainloader, epochs=1)
-        return get_parameters(self.net), len(self.trainloader), {}
-
-    def evaluate(self, parameters, config):
-        set_parameters(self.net, parameters)
-        loss, accuracy = test(self.net, self.valloader)
-        return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
+        result = funcs.predict(
+            swift_data_path =swift_data_path,
+            bank_data_path = bank_data_path,
+            model_dir = model_dir,
+            preds_format_path = preds_format_path,
+            preds_dest_path = preds_dest_path,
+            m = 'xgboost'
+            )  
+        #return loss, len(x_test), {"accuracy": accuracy}
+        return result
     
-    
-
-# Start Flower client
+    # Start Flower client
 fl.client.start_numpy_client(
         server_address="localhost:"+str(sys.argv[1]), 
         client=FlowerClient(), 
