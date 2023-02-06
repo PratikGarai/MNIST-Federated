@@ -34,7 +34,7 @@ Markdown==3.4.1
 MarkupSafe==2.1.1
 matplotlib==3.5.3
 numpy==1.23.2
-oauthlib==3.2.1
+oauthlib==3.2.2
 opt-einsum==3.3.0
 packaging==21.3
 Pillow==9.3.0
