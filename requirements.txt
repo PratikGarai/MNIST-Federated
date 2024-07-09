@@ -64,4 +64,4 @@ vine==5.0.0
 wcwidth==0.2.5
 Werkzeug==2.2.3
 wrapt==1.14.1
-zipp==3.8.1
+zipp==3.19.1
